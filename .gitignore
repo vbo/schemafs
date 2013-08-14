@@ -33,3 +33,6 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+/.unittest-sandbox
+.DS_Store
+*.swp
