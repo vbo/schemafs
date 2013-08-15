@@ -17,6 +17,32 @@ def dump(server, user, db, args=None):
     return sql
 
 
+def diff(left, right):
+    return {
+        "functions": _diff_dict(left["functions"], right["functions"]),
+        "tables": _diff_dict(left.get("tables", {}), right.get("tables", {}))
+    }
+
+
+def diff_empty(diff):
+    for k, v in diff.items():
+        for change, keys in v.items():
+            if keys:
+                return False
+    return True
+
+
+def _diff_dict(left, right):
+    left_keyset = set(left.keys())
+    right_keyset = set(right.keys())
+    common_keyset = left_keyset.intersection(right_keyset)
+    return {
+        "added": left_keyset - common_keyset,
+        "removed": right_keyset - common_keyset,
+        "changed": set(filter(lambda x: left[x] != right[x], common_keyset))
+    }
+
+
 def parse_dump(dump):
     struct = {
         "tables": {},
@@ -59,7 +85,7 @@ def parse_dump(dump):
                             if delimiter.startswith('$'):
                                 out_body = line.find(delimiter, delimiter_start) != -1
                             elif delimiter == "'":
-                                out_body_matches = re.findall(r"('+)[^']", line[delimiter_start+1:])
+                                out_body_matches = re.findall(r"('+)[^']", line[delimiter_start + 1:])
                                 if out_body_matches:
                                     for quotes in out_body_matches:
                                         out_body = len(quotes) % 2 > 0

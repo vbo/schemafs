@@ -2,7 +2,6 @@ import json
 import shutil
 import argparse
 import os
-import os.path
 
 from . import schema
 
@@ -61,7 +60,6 @@ class Ctrl(object):
                 cache.write(json.dumps(struct))
             self.struct_to_fs(directory, db_name, struct)
 
-
     # todo: this function belongs to some other module
     def struct_to_fs(self, root, db, struct):
         db_root = _pj(root, db)
@@ -113,4 +111,3 @@ if __name__ == '__main__':
     cmd = kwargs['cmd']
     del kwargs['cmd']
     getattr(cli, cmd)(**kwargs)
-

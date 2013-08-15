@@ -3,4 +3,63 @@ from .. import schema
 
 
 def test_diff_empty():
-    pass
+    diff = schema.diff({
+        "functions": {
+            "test_func": """
+                aaa
+            """.strip()
+        }
+    }, {
+        "functions": {
+            "test_func": """
+                aaa
+            """.strip()
+        }
+    })
+    ok_(schema.diff_empty(diff))
+
+
+def test_diff_changed():
+    diff = schema.diff({
+        "functions": {
+            "test_func": """
+                aaa
+            """.strip()
+        }
+    }, {
+        "functions": {
+            "test_func": """
+                bbb
+            """.strip()
+        }
+    })
+    ok_(len(diff["functions"]["changed"]) == 1)
+    ok_(not diff["functions"]["added"])
+    ok_(not diff["functions"]["removed"])
+
+
+def test_diff_added_untouched_removed():
+    diff = schema.diff({
+        "functions": {
+            "test_func_added": """
+                aaa
+            """.strip(),
+            "test_func": """
+                aaa
+            """.strip()
+        }
+    }, {
+        "functions": {
+            "test_func": """
+                aaa
+            """.strip(),
+            "test_func_removed": """
+                bbb
+            """.strip()
+        }
+    })["functions"]
+    ok_("test_func_added" in diff["added"])
+    union = reduce(lambda x, y: x.union(y), (diff["added"], diff["changed"], diff["removed"]))
+    ok_(len(union) == 2)
+    ok_("test_func" not in union)
+    ok_("test_func_removed" in diff["removed"])

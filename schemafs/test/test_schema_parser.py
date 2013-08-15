@@ -56,5 +56,3 @@ def test_booktown():
     ok_("publishers" in struct["tables"], "publishers table parsed")
     ok_(len(struct["functions"]), "some functions parsed")
     ok_("audit_bk" in struct["functions"])
-
-
