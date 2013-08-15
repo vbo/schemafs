@@ -8,7 +8,7 @@ from . import dump
 
 _pj = os.path.join
 DIR_PROJECT = ".schemafs"
-DIR_DUMPS_WORKING = _pj(DIR_PROJECT, 'dumps/woking')
+DIR_DUMPS_WORKING = _pj(DIR_PROJECT, 'dumps/working')
 
 
 def table_path(table):
@@ -30,21 +30,22 @@ class Ctrl(object):
     def push(self, remote):
         pass
 
-    def init(self, directory, server, db, use_existing):
+    def init(self, directory, server, user, db, use_existing):
         if not use_existing:
-            raise NotImplemented()
+            raise NotImplementedError("Init without existing server is not supported yet")
         os.mkdir(DIR_PROJECT)
         os.makedirs(DIR_DUMPS_WORKING)
         with open(_pj(DIR_PROJECT, 'config'), 'w') as config_file:
             data = {
                 'directory': directory,
                 'server': server,
+                'user': user,
                 'databases': db,
             }
-            config_file.write(json.dumps(data))
+            config_file.write(json.dumps(data, indent=4, separators=(',', ': ')) + "\n")
             for db_name in db:
                 with open(_pj(DIR_DUMPS_WORKING, db_name), 'w') as working:
-                    dumped = dump.dump(server, db_name).read()
+                    dumped = dump.dump(server, user, db_name).read()
                     working.write(dumped)
                     struct = dump.parse(dumped)
                     self.struct_to_fs(directory, db_name, struct)
@@ -74,11 +75,12 @@ push_parser = subparsers.add_parser('push')
 push_parser.add_argument('remote', nargs='?')
 push_parser.set_defaults(cmd='push', remote='origin')
 init_parser = subparsers.add_parser('init')
-init_parser.add_argument('directory', nargs='?')
+init_parser.add_argument('--dir', dest='directory', nargs='?')
 init_parser.add_argument('--server', dest='server', nargs='?')
-init_parser.add_argument('--db', dest='server', nargs='?')
+init_parser.add_argument('--user', dest='user', nargs='?')
+init_parser.add_argument('--db', dest='db', nargs='*')
 init_parser.add_argument('--use-existing', dest='use_existing', action='store_true')
-init_parser.set_defaults(cmd='init', directory='sql', server='localhost')
+init_parser.set_defaults(cmd='init', directory='sql', server='localhost', user='postgres', db=None, use_existing=False)
 pull_parser = subparsers.add_parser('pull')
 pull_parser.set_defaults(cmd='pull')
 clone_parser = subparsers.add_parser('clone')

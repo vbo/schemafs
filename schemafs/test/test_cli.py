@@ -32,7 +32,7 @@ def teardown():
 
 def test_cli_init():
     ctrl = cli.Ctrl()
-    ctrl.init('sql', 'localhost', [_db_e], True)
+    ctrl.init('sql', 'localhost', 'vbo', [_db_e], True)
     ok_(os.path.isdir('.schemafs'), "project directory created")
     ok_(os.path.exists('.schemafs/config'), "config file created")
     ok_(os.path.isdir('sql'), "root dir created")

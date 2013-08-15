@@ -2,13 +2,17 @@ from subprocess import Popen, PIPE, STDOUT
 import re
 
 
-def dump(server, db, args=None):
+def dump(server, user, db, args=None):
     if not args:
         args = []
-    p = Popen(" ".join(
+    # todo: error handling
+    # todo: it's much faster to use ssh ... pg_dump ... for remote connections, maybe with compression
+    # like this: ssh <host> "PGPASSWORD=<pass> pg_dump -s -U postgres <db> | bzip2" | bunzip2
+    cmd = " ".join(
         ['pg_dump', '-s'] + args +
-        ['-h', server, db]
-    ), stdin=PIPE, stdout=PIPE, stderr=STDOUT, universal_newlines=True, shell=True)
+        ['-h', server, '-U', user, db]
+    )
+    p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=STDOUT, universal_newlines=True, shell=True)
     sql = p.stdout
     return sql
 
