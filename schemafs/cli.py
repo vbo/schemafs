@@ -1,4 +1,5 @@
 import json
+import shutil
 import argparse
 import os
 import os.path
@@ -9,6 +10,9 @@ from . import dump
 _pj = os.path.join
 DIR_PROJECT = ".schemafs"
 DIR_DUMPS_WORKING = _pj(DIR_PROJECT, 'dumps/working')
+DIR_CACHE_WORKING_FS = _pj(DIR_PROJECT, 'cache/working/fs')
+DIR_CACHE_WORKING_SCHEMA = _pj(DIR_PROJECT, 'cache/working/schema')
+CACHE_FS_LAYOUT = False
 
 
 def table_path(table):
@@ -30,12 +34,17 @@ class Ctrl(object):
     def push(self, remote):
         pass
 
+    def diff(self, path):
+        pass
+
     def init(self, directory, server, user, db, use_existing):
         if not use_existing:
             raise NotImplementedError("Init without existing server is not supported yet")
         os.mkdir(DIR_PROJECT)
         os.makedirs(DIR_DUMPS_WORKING)
-        with open(_pj(DIR_PROJECT, 'config'), 'w') as config_file:
+        os.makedirs(DIR_CACHE_WORKING_FS)
+        os.makedirs(DIR_CACHE_WORKING_SCHEMA)
+        with open(_pj(DIR_PROJECT, 'config.json'), 'w') as config_file:
             data = {
                 'directory': directory,
                 'server': server,
@@ -43,16 +52,20 @@ class Ctrl(object):
                 'databases': db,
             }
             config_file.write(json.dumps(data, indent=4, separators=(',', ': ')) + "\n")
-            for db_name in db:
-                with open(_pj(DIR_DUMPS_WORKING, db_name), 'w') as working:
-                    dumped = dump.dump(server, user, db_name).read()
-                    working.write(dumped)
-                    struct = dump.parse(dumped)
-                    self.struct_to_fs(directory, db_name, struct)
+        for db_name in db:
+            dumped = dump.dump(server, user, db_name).read()
+            with open(_pj(DIR_DUMPS_WORKING, '%s.sql' % db_name), 'w') as working:
+                working.write(dumped)
+            struct = dump.parse(dumped)
+            with open(_pj(DIR_CACHE_WORKING_SCHEMA, "%s.json" % db_name), 'w') as cache:
+                cache.write(json.dumps(struct))
+            self.struct_to_fs(directory, db_name, struct)
+
 
     # todo: this function belongs to some other module
     def struct_to_fs(self, root, db, struct):
-        os.makedirs(_pj(root, db))
+        db_root = _pj(root, db)
+        os.makedirs(db_root)
         # todo: decopypaste
         tables_dir = _pj(root, db, "tables")
         os.mkdir(tables_dir)
@@ -64,11 +77,14 @@ class Ctrl(object):
         for func, definition in struct["functions"].items():
             with open(_pj(functions_dir, function_path(func)), 'w') as fl:
                 fl.write(definition)
+        if CACHE_FS_LAYOUT:
+            shutil.copytree(db_root, _pj(DIR_CACHE_WORKING_FS, db))
 
     def clone(self):
         pass
 
 
+# todo: declarative argparse
 parser = argparse.ArgumentParser(prog='sfs')
 subparsers = parser.add_subparsers()
 push_parser = subparsers.add_parser('push')
@@ -85,6 +101,9 @@ pull_parser = subparsers.add_parser('pull')
 pull_parser.set_defaults(cmd='pull')
 clone_parser = subparsers.add_parser('clone')
 clone_parser.set_defaults(cmd='clone')
+diff_parser = subparsers.add_parser('diff')
+diff_parser.add_argument('path', nargs='*')
+diff_parser.set_defaults(cmd='diff', path=None)
 
 
 if __name__ == '__main__':
