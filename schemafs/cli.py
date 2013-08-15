@@ -68,7 +68,7 @@ class Ctrl(object):
         pass
 
 
-parser = argparse.ArgumentParser(description='')
+parser = argparse.ArgumentParser(prog='sfs')
 subparsers = parser.add_subparsers()
 push_parser = subparsers.add_parser('push')
 push_parser.add_argument('remote', nargs='?')
