@@ -7,7 +7,7 @@ from . import dump
 
 
 _pj = os.path.join
-DIR_PROJECT = ".sqlfs"
+DIR_PROJECT = ".schemafs"
 DIR_DUMPS_WORKING = _pj(DIR_PROJECT, 'dumps/woking')
 
 

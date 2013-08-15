@@ -6,7 +6,7 @@ from .. import cli
 
 
 _s = '.unittest-sandbox'
-_db_e = 'sqlfs-test-existing'
+_db_e = 'schemafs-test-existing'
 _prepare_db_sql = """
     CREATE TABLE test (id serial PRIMARY KEY, num integer, data varchar);
     CREATE FUNCTION test_func(integer) RETURNS integer LANGUAGE plpgsql AS $$
@@ -33,8 +33,8 @@ def teardown():
 def test_cli_init():
     ctrl = cli.Ctrl()
     ctrl.init('sql', 'localhost', [_db_e], True)
-    ok_(os.path.isdir('.sqlfs'), "project directory created")
-    ok_(os.path.exists('.sqlfs/config'), "config file created")
+    ok_(os.path.isdir('.schemafs'), "project directory created")
+    ok_(os.path.exists('.schemafs/config'), "config file created")
     ok_(os.path.isdir('sql'), "root dir created")
     ok_(os.path.isdir('sql/%s/functions' % _db_e) and os.path.isdir('sql/%s/tables' % _db_e), "func and table dirs created")
     ok_(os.path.exists('sql/%s/tables/test_table.sql' % _db_e), "tables seems synced")
