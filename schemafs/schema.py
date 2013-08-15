@@ -17,7 +17,7 @@ def dump(server, user, db, args=None):
     return sql
 
 
-def parse(dump):
+def parse_dump(dump):
     struct = {
         "tables": {},
         "functions": {}
@@ -31,6 +31,8 @@ def parse(dump):
                 matches = re.search(r'table\s+"?(\w+)"?', line, re.IGNORECASE)
                 if matches:
                     table = matches.group(1).lower()
+                else:
+                    raise SyntaxError("Create table statement must contain table name")
                 lines = []
                 while True:
                     lines.append(line)
@@ -43,8 +45,9 @@ def parse(dump):
                 if matches:
                     function = matches.group(1).lower()
                     # todo: add argument types
+                else:
+                    raise SyntaxError("Create function statement must contain function name and args")
                 lines = []
-                delimiter = None
                 while True:
                     lines.append(line)
                     in_body = re.search(r'as\s+(\$[^$]*\$|\')', line, re.IGNORECASE)
@@ -52,6 +55,7 @@ def parse(dump):
                         delimiter = in_body.group(1)
                         delimiter_start = in_body.end(1)
                         while True:
+                            out_body = False
                             if delimiter.startswith('$'):
                                 out_body = line.find(delimiter, delimiter_start) != -1
                             elif delimiter == "'":
@@ -62,7 +66,7 @@ def parse(dump):
                                 else:
                                     out_body = False
                             else:
-                                raise ArgumentError()
+                                raise SyntaxError("Unknown function body delimiter: '%s'" % delimiter)
                             if not out_body:
                                 line = dump.next()
                                 lines.append(line)

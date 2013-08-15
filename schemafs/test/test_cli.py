@@ -1,4 +1,4 @@
-import os, os.path
+import os
 import shutil
 from nose.tools import ok_, eq_
 
@@ -17,6 +17,7 @@ _prepare_db_sql = """
     $$;
 """
 
+
 def setup():
     if os.path.isdir(_s):
         pass
@@ -33,8 +34,10 @@ def teardown():
 def test_cli_init():
     ctrl = cli.Ctrl()
     ctrl.init('sql', 'localhost', 'vbo', [_db_e], True)
+    # todo: dehardcode pathes
     ok_(os.path.isdir('.schemafs'), "project directory created")
     ok_(os.path.exists('.schemafs/config.json'), "config file created")
+    # todo: it needs to be in test_cli_refresh
     ok_(os.path.isdir('.schemafs/dumps/working'), "dumps dir created")
     ok_(os.path.exists('.schemafs/dumps/working/%s.sql' % _db_e), "dump saved")
     ok_(os.path.isdir('sql'), "root dir created")

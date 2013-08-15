@@ -4,7 +4,7 @@ import argparse
 import os
 import os.path
 
-from . import dump
+from . import schema
 
 
 _pj = os.path.join
@@ -53,10 +53,10 @@ class Ctrl(object):
             }
             config_file.write(json.dumps(data, indent=4, separators=(',', ': ')) + "\n")
         for db_name in db:
-            dumped = dump.dump(server, user, db_name).read()
+            dumped = schema.dump(server, user, db_name).read()
             with open(_pj(DIR_DUMPS_WORKING, '%s.sql' % db_name), 'w') as working:
                 working.write(dumped)
-            struct = dump.parse(dumped)
+            struct = schema.parse_dump(dumped)
             with open(_pj(DIR_CACHE_WORKING_SCHEMA, "%s.json" % db_name), 'w') as cache:
                 cache.write(json.dumps(struct))
             self.struct_to_fs(directory, db_name, struct)

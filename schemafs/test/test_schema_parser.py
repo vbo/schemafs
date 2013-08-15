@@ -1,9 +1,9 @@
 from nose.tools import ok_, eq_
-from .. import dump
+from .. import schema
 
 
 def _test_func(name, definition):
-    struct = dump.parse(definition)
+    struct = schema.parse_dump(definition)
     ok_(name in struct["functions"], "%s parsed as function" % name)
     eq_(definition, struct["functions"][name])
 
@@ -51,7 +51,7 @@ def test_func_parser_string_quoted():
 
 def test_booktown():
     d1 = open('fixture/parser/booktown.sql', 'r')
-    struct = dump.parse(d1)
+    struct = schema.parse_dump(d1)
     ok_(len(struct["tables"]), "some tables parsed")
     ok_("publishers" in struct["tables"], "publishers table parsed")
     ok_(len(struct["functions"]), "some functions parsed")

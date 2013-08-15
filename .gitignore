@@ -36,3 +36,5 @@ nosetests.xml
 /.unittest-sandbox
 .DS_Store
 *.swp
+/.idea
+*.iml
