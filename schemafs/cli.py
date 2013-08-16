@@ -30,33 +30,16 @@ class NotAProject(FatalError):
     pass
 
 
+class RefreshError(FatalError):
+    pass
+
+
 class Ctrl(object):
 
     def __init__(self):
         self.root = self._find_root(os.getcwd())
         if self.root:
             self.config = self._load_config()
-
-    def require_root(self, cmd):
-        if cmd == "init":
-            return
-        if not self.root:
-            raise NotAProject("Not a SchemaFS project (or any of the parent directories)")
-
-    def pull(self, remote):
-        pass
-
-    def push(self, remote):
-        pass
-
-    def diff(self, view):
-        dbs = self.config["databases"]
-        result = {}
-        for db in dbs:
-            past = json.load(open(_pj(self.root, DIR_CACHE_WORKING_SCHEMA, '%s.json' % db)))
-            current = self.fs_to_struct(db)
-            result[db] = schema.diff(current, past)
-        return view(result, current, past)
 
     def init(self, directory, server, user, db, use_existing):
         self.root = os.getcwd()
@@ -69,23 +52,45 @@ class Ctrl(object):
         os.makedirs(DIR_DUMPS_WORKING)
         os.makedirs(DIR_CACHE_WORKING_FS)
         os.makedirs(DIR_CACHE_WORKING_SCHEMA)
+        config = {
+            'directory': directory,
+            'server': server,
+            'user': user,
+            'databases': db,
+        }
         with open(_pj(DIR_PROJECT, 'config.json'), 'w') as config_file:
-            data = {
-                'directory': directory,
-                'server': server,
-                'user': user,
-                'databases': db,
-            }
-            config_file.write(json.dumps(data, indent=4, separators=(',', ': ')) + "\n")
-            self.config = data
-        for db_name in db:
-            dumped = schema.dump(server, user, db_name).read()
+            config_file.write(json.dumps(config, indent=4, separators=(',', ': ')) + "\n")
+            self.config = config
+        self.refresh(force=True)
+
+    def refresh(self, force=False):
+        if not force:
+            diff, cur, past = self.diff()
+            if not all(schema.diff_empty(x) for x in diff.values()):
+                raise RefreshError("Can't refresh tree with changes. Commit your changes or add --force to override")
+        for db_name in self.config["databases"]:
+            dumped = schema.dump(self.config["server"], self.config["user"], db_name).read()
             with open(_pj(DIR_DUMPS_WORKING, '%s.sql' % db_name), 'w') as working:
                 working.write(dumped)
             struct = schema.parse_dump(dumped)
             with open(_pj(DIR_CACHE_WORKING_SCHEMA, "%s.json" % db_name), 'w') as cache:
                 cache.write(json.dumps(struct))
+            shutil.rmtree(_pj(self.root, self.config["directory"], db_name), ignore_errors=True)
             self.struct_to_fs(db_name, struct)
+
+    def diff(self, view=None):
+        dbs = self.config["databases"]
+        result = {}
+        current = {}
+        past = {}
+        for db in dbs:
+            past[db] = json.load(open(_pj(self.root, DIR_CACHE_WORKING_SCHEMA, '%s.json' % db)))
+            current[db] = self.fs_to_struct(db)
+            result[db] = schema.diff(current[db], past[db])
+        if hasattr(view, '__call__'):
+            view(result, current, past)
+        else:
+            return result, current, past
 
     # todo: this functions belongs to some other module - like fs.py
     def struct_to_fs(self, db, struct):
@@ -115,9 +120,6 @@ class Ctrl(object):
                 schema[t][name] = open(g).read()
         return schema
 
-    def clone(self):
-        pass
-
     def _find_root(self, cwd):
         if os.path.isdir(_pj(cwd, DIR_PROJECT)):
             return cwd
@@ -128,6 +130,12 @@ class Ctrl(object):
 
     def _load_config(self):
         return json.load(open(_pj(self.root, DIR_PROJECT, 'config.json')))
+
+    def require_root(self, cmd):
+        if cmd == "init":
+            return
+        if not self.root:
+            raise NotAProject("Not a SchemaFS project (or any of the parent directories)")
 
 
 change_letters = {
@@ -150,33 +158,28 @@ def changes_view(changes, current, past):
                 )
                 for line in diff:
                     print line,
-    print
 
 
 def diff_view(diffs, current, past):
     for db, diff in diffs.items():
         for t, changes in diff.items():
-            print t.upper()
-            changes_view(changes, current[t], past[t])
+            changes_view(changes, current[db][t], past[db][t])
 
 
 # todo: declarative argparse
 parser = argparse.ArgumentParser(prog='sfs')
 subparsers = parser.add_subparsers()
-push_parser = subparsers.add_parser('push')
-push_parser.add_argument('remote', nargs='?')
-push_parser.set_defaults(cmd='push', remote='origin')
 init_parser = subparsers.add_parser('init')
-init_parser.add_argument('--dir', dest='directory', nargs='?')
-init_parser.add_argument('--server', dest='server', nargs='?')
-init_parser.add_argument('--user', dest='user', nargs='?')
-init_parser.add_argument('--db', dest='db', nargs='*')
-init_parser.add_argument('--use-existing', dest='use_existing', action='store_true')
+init_arg = init_parser.add_argument
+init_arg('--dir', dest='directory', nargs='?')
+init_arg('--server', dest='server', nargs='?')
+init_arg('--user', dest='user', nargs='?')
+init_arg('--db', dest='db', nargs='*')
+init_arg('--use-existing', dest='use_existing', action='store_true')
 init_parser.set_defaults(cmd='init', directory='sql', server='localhost', user='postgres', db=None, use_existing=False)
-pull_parser = subparsers.add_parser('pull')
-pull_parser.set_defaults(cmd='pull')
-clone_parser = subparsers.add_parser('clone')
-clone_parser.set_defaults(cmd='clone')
+refresh_parser = subparsers.add_parser('refresh')
+refresh_parser.add_argument('--force', dest='force', action='store_true')
+refresh_parser.set_defaults(cmd='refresh', force=False)
 diff_parser = subparsers.add_parser('diff')
 diff_parser.set_defaults(cmd='diff', view=diff_view)
 
@@ -187,5 +190,8 @@ if __name__ == '__main__':
     kwargs = vars(args)
     cmd = kwargs['cmd']
     del kwargs['cmd']
-    cli.require_root(cmd)
-    getattr(cli, cmd)(**kwargs)
+    try:
+        cli.require_root(cmd)
+        getattr(cli, cmd)(**kwargs)
+    except FatalError as e:
+        print e
