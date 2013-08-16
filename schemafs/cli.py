@@ -2,6 +2,7 @@ import json
 import shutil
 import argparse
 import os
+from glob import iglob
 
 from . import schema
 
@@ -14,18 +15,32 @@ DIR_CACHE_WORKING_SCHEMA = _pj(DIR_PROJECT, 'cache/working/schema')
 CACHE_FS_LAYOUT = False
 
 
-def table_path(table):
-    return "%s.sql" % table
+class FatalError(BaseException):
+
+    def __init__(self, msg):
+        super(FatalError, self).__init__()
+        self.msg = msg
+
+    def __str__(self):
+        return "fatal: %s" % (self.msg,)
 
 
-def function_path(func):
-    return "%s.sql" % func
+class NotAProject(FatalError):
+    pass
 
 
 class Ctrl(object):
 
     def __init__(self):
-        pass
+        self.root = self._find_root(os.getcwd())
+        if self.root:
+            self.config = self._load_config()
+
+    def require_root(self, cmd):
+        if cmd == "init":
+            return
+        if not self.root:
+            raise NotAProject("Not a SchemaFS project (or any of the parent directories)")
 
     def pull(self, remote):
         pass
@@ -33,12 +48,21 @@ class Ctrl(object):
     def push(self, remote):
         pass
 
-    def diff(self, path):
-        pass
+    def diff(self, view):
+        dbs = self.config["databases"]
+        result = {}
+        for db in dbs:
+            past = json.load(open(_pj(self.root, DIR_CACHE_WORKING_SCHEMA, '%s.json' % db)))
+            result[db] = schema.diff(self.fs_to_struct(db), past)
+        return view(result)
 
     def init(self, directory, server, user, db, use_existing):
+        self.root = os.getcwd()
         if not use_existing:
             raise NotImplementedError("Init without existing server is not supported yet")
+        if os.path.isdir(DIR_PROJECT):
+            # todo: reinit
+            return
         os.mkdir(DIR_PROJECT)
         os.makedirs(DIR_DUMPS_WORKING)
         os.makedirs(DIR_CACHE_WORKING_FS)
@@ -51,6 +75,7 @@ class Ctrl(object):
                 'databases': db,
             }
             config_file.write(json.dumps(data, indent=4, separators=(',', ': ')) + "\n")
+            self.config = data
         for db_name in db:
             dumped = schema.dump(server, user, db_name).read()
             with open(_pj(DIR_DUMPS_WORKING, '%s.sql' % db_name), 'w') as working:
@@ -58,29 +83,57 @@ class Ctrl(object):
             struct = schema.parse_dump(dumped)
             with open(_pj(DIR_CACHE_WORKING_SCHEMA, "%s.json" % db_name), 'w') as cache:
                 cache.write(json.dumps(struct))
-            self.struct_to_fs(directory, db_name, struct)
+            self.struct_to_fs(db_name, struct)
 
-    # todo: this function belongs to some other module
-    def struct_to_fs(self, root, db, struct):
-        db_root = _pj(root, db)
+    # todo: this functions belongs to some other module - like fs.py
+    def struct_to_fs(self, db, struct):
+        db_root = _pj(self.root, self.config["directory"], db)
         os.makedirs(db_root)
-        # todo: decopypaste
-        tables_dir = _pj(root, db, "tables")
-        os.mkdir(tables_dir)
-        for table, definition in struct["tables"].items():
-            with open(_pj(tables_dir, table_path(table)), 'w') as fl:
-                fl.write(definition)
-        functions_dir = _pj(root, db, "functions")
-        os.mkdir(functions_dir)
-        for func, definition in struct["functions"].items():
-            with open(_pj(functions_dir, function_path(func)), 'w') as fl:
-                fl.write(definition)
+        for t in struct.keys():
+            directory = _pj(db_root, t)
+            os.mkdir(directory)
+            for name, definition in struct[t].items():
+                with open(_pj(directory, '%s.sql' % name), 'w') as fl:
+                    fl.write(definition)
         if CACHE_FS_LAYOUT:
             shutil.copytree(db_root, _pj(DIR_CACHE_WORKING_FS, db))
+
+    def fs_to_struct(self, db):
+        db_root = _pj(self.root, self.config["directory"], db)
+        schema = {
+            "functions": {},
+            "tables": {}
+        }
+        for t in schema.keys():
+            directory = _pj(db_root, t)
+            if not os.path.isdir(directory):
+                continue
+            for g in iglob(_pj(directory, "*.sql")):
+                name = os.path.splitext(os.path.basename(g))[0]
+                schema[t][name] = open(g).read()
+        return schema
 
     def clone(self):
         pass
 
+    def _find_root(self, cwd):
+        if os.path.isdir(_pj(cwd, DIR_PROJECT)):
+            return cwd
+        pardir = os.path.abspath(_pj(cwd, os.pardir))
+        if pardir == cwd:
+            return None
+        return self._find_root(pardir)
+
+    def _load_config(self):
+        return json.load(open(_pj(self.root, DIR_PROJECT, 'config.json')))
+
+
+def diff_view(diffs):
+    for diff in diffs:
+        for t, changes in diff.items():
+            print t.toupper()
+            for change, names in changes.items():
+                print change, names
 
 # todo: declarative argparse
 parser = argparse.ArgumentParser(prog='sfs')
@@ -100,8 +153,7 @@ pull_parser.set_defaults(cmd='pull')
 clone_parser = subparsers.add_parser('clone')
 clone_parser.set_defaults(cmd='clone')
 diff_parser = subparsers.add_parser('diff')
-diff_parser.add_argument('path', nargs='*')
-diff_parser.set_defaults(cmd='diff', path=None)
+diff_parser.set_defaults(cmd='diff', view=diff_view)
 
 
 if __name__ == '__main__':
@@ -110,4 +162,5 @@ if __name__ == '__main__':
     kwargs = vars(args)
     cmd = kwargs['cmd']
     del kwargs['cmd']
+    cli.require_root(cmd)
     getattr(cli, cmd)(**kwargs)
