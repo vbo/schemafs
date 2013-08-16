@@ -72,10 +72,10 @@ def test_cli_diff():
     # todo: test _fs_to_struct separately
     ctrl = cli.Ctrl()
     ctrl.init('sql', 'localhost', 'vbo', [_db_e], True)
-    ctrl.diff(lambda d: ok_(schema.diff_empty(d[_db_e])))
+    ctrl.diff(lambda d, x, y: ok_(schema.diff_empty(d[_db_e])))
     func = open('sql/%s/functions/test_func.sql' % _db_e).read()
     func = re.sub(r'(return\s+)(\d+);', r'\1\2\2;', func, flags=re.IGNORECASE)
     open('sql/%s/functions/test_func.sql' % _db_e, 'w').write(func)
     os.remove('sql/%s/tables/test_table.sql' % _db_e)
-    ctrl.diff(lambda d: "test_func" in d[_db_e]["functions"]["changed"])
-    ctrl.diff(lambda d: "test_table" in d[_db_e]["tables"]["removed"])
+    ctrl.diff(lambda d, x, y: "test_func" in d[_db_e]["functions"]["changed"])
+    ctrl.diff(lambda d, x, y: "test_table" in d[_db_e]["tables"]["removed"])

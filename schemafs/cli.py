@@ -3,6 +3,7 @@ import shutil
 import argparse
 import os
 from glob import iglob
+import difflib
 
 from . import schema
 
@@ -53,8 +54,9 @@ class Ctrl(object):
         result = {}
         for db in dbs:
             past = json.load(open(_pj(self.root, DIR_CACHE_WORKING_SCHEMA, '%s.json' % db)))
-            result[db] = schema.diff(self.fs_to_struct(db), past)
-        return view(result)
+            current = self.fs_to_struct(db)
+            result[db] = schema.diff(current, past)
+        return view(result, current, past)
 
     def init(self, directory, server, user, db, use_existing):
         self.root = os.getcwd()
@@ -128,12 +130,35 @@ class Ctrl(object):
         return json.load(open(_pj(self.root, DIR_PROJECT, 'config.json')))
 
 
-def diff_view(diffs):
-    for diff in diffs:
+change_letters = {
+    "added": "A",
+    "removed": "R",
+    "changed": "C"
+}
+
+
+def changes_view(changes, current, past):
+    for change, names in changes.items():
+        for name in names:
+            print change_letters[change], name
+            if change == "changed":
+                diff = difflib.unified_diff(
+                    a=past[name].splitlines(True),
+                    b=current[name].splitlines(True),
+                    fromfile="old",
+                    tofile="new",
+                )
+                for line in diff:
+                    print line,
+    print
+
+
+def diff_view(diffs, current, past):
+    for db, diff in diffs.items():
         for t, changes in diff.items():
-            print t.toupper()
-            for change, names in changes.items():
-                print change, names
+            print t.upper()
+            changes_view(changes, current[t], past[t])
+
 
 # todo: declarative argparse
 parser = argparse.ArgumentParser(prog='sfs')
