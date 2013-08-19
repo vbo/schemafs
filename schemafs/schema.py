@@ -2,6 +2,13 @@ from subprocess import Popen, PIPE, STDOUT
 import re
 
 
+def create_template():
+    return {
+        "functions": {},
+        "tables": {}
+    }
+
+
 def dump(server, user, db, args=None):
     if not args:
         args = []
@@ -18,10 +25,10 @@ def dump(server, user, db, args=None):
 
 
 def diff(left, right):
-    return {
-        "functions": _diff_dict(left["functions"], right["functions"]),
-        "tables": _diff_dict(left.get("tables", {}), right.get("tables", {}))
-    }
+    result = {}
+    for key in create_template():
+        result[key] = _diff_dict(left.get(key, {}), right.get(key, {}))
+    return result
 
 
 def diff_empty(diff):
@@ -44,10 +51,7 @@ def _diff_dict(left, right):
 
 
 def parse_dump(dump):
-    struct = {
-        "tables": {},
-        "functions": {}
-    }
+    struct = create_template()
     if isinstance(dump, str):
         dump = iter(dump.splitlines(True))
     while True:

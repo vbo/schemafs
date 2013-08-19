@@ -2,10 +2,10 @@ import json
 import shutil
 import argparse
 import os
-from glob import iglob
 import difflib
 
 from . import schema
+from . import fs
 
 
 _pj = os.path.join
@@ -92,33 +92,17 @@ class Ctrl(object):
         else:
             return result, current, past
 
-    # todo: this functions belongs to some other module - like fs.py
     def struct_to_fs(self, db, struct):
         db_root = _pj(self.root, self.config["directory"], db)
         os.makedirs(db_root)
-        for t in struct.keys():
-            directory = _pj(db_root, t)
-            os.mkdir(directory)
-            for name, definition in struct[t].items():
-                with open(_pj(directory, '%s.sql' % name), 'w') as fl:
-                    fl.write(definition)
+        fs.from_struct(db_root, struct)
         if CACHE_FS_LAYOUT:
             shutil.copytree(db_root, _pj(DIR_CACHE_WORKING_FS, db))
 
     def fs_to_struct(self, db):
         db_root = _pj(self.root, self.config["directory"], db)
-        schema = {
-            "functions": {},
-            "tables": {}
-        }
-        for t in schema.keys():
-            directory = _pj(db_root, t)
-            if not os.path.isdir(directory):
-                continue
-            for g in iglob(_pj(directory, "*.sql")):
-                name = os.path.splitext(os.path.basename(g))[0]
-                schema[t][name] = open(g).read()
-        return schema
+        struct = schema.create_template()
+        return fs.to_struct(db_root, struct)
 
     def _find_root(self, cwd):
         if os.path.isdir(_pj(cwd, DIR_PROJECT)):
