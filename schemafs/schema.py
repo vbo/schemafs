@@ -59,27 +59,27 @@ def parse_dump(dump):
             line = dump.next()
             if line.startswith('CREATE TABLE'):
                 matches = re.search(r'table\s+"?(\w+)"?', line, re.IGNORECASE)
-                if matches:
-                    table = matches.group(1).lower()
-                else:
+                if not matches:
                     raise SyntaxError("Create table statement must contain table name")
+                table = matches.group(1).lower()
                 lines = []
                 while True:
                     lines.append(line)
+                    # todo: parse definition body (columns etc)
                     if line.rstrip().endswith(';'):
+                        # todo: what about EOF?
                         struct["tables"][table] = "".join(lines)
                         break
                     line = dump.next()
             elif line.startswith('CREATE FUNCTION'):
                 matches = re.search(r'function\s+"?([\w]+)"?\s*\(', line, re.IGNORECASE)
-                if matches:
-                    function = matches.group(1).lower()
-                    # todo: add argument types
-                else:
+                if not matches:
                     raise SyntaxError("Create function statement must contain function name and args")
+                function = matches.group(1).lower()
                 lines = []
                 while True:
                     lines.append(line)
+                    # todo: parse argument types
                     in_body = re.search(r'as\s+(\$[^$]*\$|\')', line, re.IGNORECASE)
                     if in_body:
                         delimiter = in_body.group(1)
