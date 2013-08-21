@@ -104,11 +104,7 @@ def parse_dump(dump):
                                 continue
                             break
                     if re.search(';\s*$', line):
-                        try:
-                            struct["functions"][function] = "".join(lines)
-                        except UnboundLocalError:
-                            print line
-                            raise
+                        struct["functions"][function] = "".join(lines)
                         break
                     line = dump.next()
         except StopIteration:
