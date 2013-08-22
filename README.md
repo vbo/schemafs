@@ -19,19 +19,17 @@ Suppose you have a project called "myproject" that uses `git` to version control
     ├── src
     └── some other existing project directories...
 
-Let's see how we can start using SchemaFS to manage your database: 
+Let's see how we can start using SchemaFS to manage the database:
 
     $ sfs init --db mydb --use-existing --dir sql
     $ tree -a
     .
     ├── .git
     ├── src
-    ... some other existing project directories
+    ├── some other existing project directories...
     ├── .schemafs
     │   ├── config
-    │   └── dumps
-    │       └── working
-    │           └── mydb.sql
+    │   └── some other metadata...
     └── sql
         └── mydb
             ├── functions
@@ -51,11 +49,69 @@ Now, you can try to make some changes using any tools you like - `find` or Spotl
         WHERE id = $1;
     $$;
     $ find . -type f -exec sed -i 's/value/volume/g' {} \; # performing a "rename" refactoring
-    $ sfs diff --generate-sql # check out diff in sql
-    $ # todo: add sfs diff visuals
-    $ sfs commit
+    $ sfs diff # check out what we just made
+    C some_table
+    --- old
+    +++ new
+    @@ -1,5 +1,5 @@
+     CREATE TABLE some_table (
+         id integer NOT NULL,
+    -    value integer,
+    +    volume integer,
+         data character varying
+     );
+    C some_function
+    --- old
+    +++ new
+    @@ -3,6 +3,6 @@
+     LANGUAGE sql AS $$
+    -    SELECT value
+    +    SELECT volume
+         FROM some_table
+         WHERE id = $1;
+     $$;
+    $ # as you see its just like `git diff`, but SchemaFS understands changes you made
+    $ # and generates appropriate SQL queries to implement it on the DB side
+    $ sfs diff --generated-sql
+    BEGIN;
+    -- C some_table
+    ALTER TABLE some_table RENAME COLUMN value TO volume;
+    -- C some_function
+    CREATE OR REPLACE FUNCTION some_function(integer) RETURNS integer
+    LANGUAGE sql AS $$
+        SELECT volume
+        FROM some_table
+        WHERE id = $1;
+    $$;
+    COMMIT;
+    $ sfs commit # execute generated SQL
 
-TODO: tell something new ;)
+How does SchemaFS know what I mean?
+-----------------------------------
+Suppose you have the `sfs diff` like this:
 
+    C some_table
+    --- old
+    +++ new
+    @@ -1,5 +1,5 @@
+     CREATE TABLE some_table (
+         id integer NOT NULL,
+    -    value integer,
+    +    volume integer,
+         data character varying
+     );
 
+How SchemaFS can determine whether you wanted to rename the column or just drop it and create another?
 
+SchemaFS uses an algorithm to calculate a list of ways to migrate from old database schema to the new one.
+Most of the time this list contains only one possible way so SchemaFS can just generate SQL and execute it for you.
+If it has several options for a particular situation it uses the non-destructive one by default, so you can revert
+the changes later if you want. If there is no good guess SchemaFS allows you to choose action from the list or
+execute a custom query.
+
+Sounds great! Where you are now?
+--------------------------------
+For now SchemaFS can only replicate table and function definitions to the directory structure and make a simple diff.
+But I am working on it. Watch the repository at https://github.com/vbo/schemafs to stay in touch.
+
+I am targeting mostly PostgreSQL for now. MySQL and other databases support will be added after the first release.
