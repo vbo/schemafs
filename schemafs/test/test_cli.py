@@ -7,6 +7,7 @@ from .. import cli
 from .. import schema
 
 
+# todo: test cli view separately (pretty diff, output messages etc)
 _s = '.unittest-sandbox'
 _db_e = 'schemafs-test-existing'
 _prepare_db_sql = """
