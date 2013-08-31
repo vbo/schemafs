@@ -13,13 +13,14 @@ def dump(server, user, db, args=None):
     if not args:
         args = []
     # todo: error handling
-    # todo: it's much faster to use ssh ... pg_dump ... for remote connections, maybe with compression
-    # like this: ssh <host> "PGPASSWORD=<pass> pg_dump -s -U postgres <db> | bzip2" | bunzip2
-    cmd = " ".join(
-        ['pg_dump', '-s'] + args +
-        ['-h', server, '-U', user, db]
-    )
-    p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=STDOUT, universal_newlines=True, shell=True)
+    if server != "localhost":
+        cmd = 'ssh %s "pg_dump -s -U postgres %s | bzip2" | bunzip2' % (user + "@" + server, db)
+    else:
+        cmd = " ".join(
+            ['pg_dump', '-s'] + args +
+            ['-h', server, '-U', user, db]
+        )
+    p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=STDOUT, shell=True)
     sql = p.stdout
     return sql
 
