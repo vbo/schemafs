@@ -1,6 +1,6 @@
 import re
 
-from . import BaseParser
+from . import BaseParser, ParseError
 
 
 class CreateTableParser(BaseParser):
@@ -67,7 +67,6 @@ class CreateTableParser(BaseParser):
         definition = self.get_expression()
         column = {
             "name": name,
-            "definition": definition,
             "nullable": True,
             "default": None,
             "type": None

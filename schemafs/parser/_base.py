@@ -1,3 +1,6 @@
+import re
+
+
 class ParseError(Exception):
     pass
 
@@ -90,7 +93,8 @@ class BaseParser(object):
         return result
 
     def get_string(self):
-        is_quoted = self.stmt[self.pos] == "'"
+        at = self.stmt[self.pos]
+        is_quoted = at == "'"
         if is_quoted:
             escape = False
             end = self.pos + 1
@@ -107,6 +111,19 @@ class BaseParser(object):
                 end += 1
             result = self.stmt[self.pos:end + 1]
             self.pos = end + 1
+            self.skip_whitespace()
+            return result
+        is_dollar = at == "$"
+        if is_dollar:
+            start = self.pos
+            self.pos += 1
+            tag = self.stmt[self.pos:self.stmt.find("$")]
+            self.pos += len(tag)
+            self.expect("$")
+            end_quote = "$" + tag + "$"
+            while not self.expect_optional(end_quote):
+                self.pos += 1
+            result = self.stmt[start:self.pos].strip()
             self.skip_whitespace()
             return result
         end = self.pos

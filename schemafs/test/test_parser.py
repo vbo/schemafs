@@ -16,7 +16,7 @@ def test_create_table():
         ) TABLESPACE disk01;
     """
     parsed = parser.CreateTableParser(stmt).parse()
-    eq_(parsed["name"], "abc_schema.\"abc\"")
+    eq_(parsed["name"], 'abc_schema."abc"')
     ok_("abc_bca_fkey" in parsed["constrains"])
     eq_(parsed["tablespace"], "disk01")
     eq_(len(parsed["columns"]), 3)
@@ -29,3 +29,40 @@ def test_create_table():
         actual = parsed["columns"][i]
         for key in col:
             eq_(col[key], actual[key])
+
+
+def test_create_function():
+    body = """$$
+        BEGIN
+            RETURN a1;
+        END;
+    $$"""
+    stmt = """
+        CREATE FUNCTION abc(IN a1 integer)
+        RETURNS integer AS """ + body + """ LANGUAGE plpgsql;
+    """
+    parsed = parser.CreateFunctionParser(stmt).parse()
+    eq_(parsed["name"], "abc")
+    eq_(parsed["returns"], "integer")
+    eq_(parsed["body"], body)
+    eq_(len(parsed["arguments"]), 1)
+    arg = parsed["arguments"][0]
+    eq_(arg["mode"], "IN")
+    eq_(arg["name"], "a1")
+    eq_(arg["type"], "integer")
+
+
+def test_create_function_corners():
+    body = """'
+        select ''hello world''::text
+    '"""
+    stmt = """
+        create function bcd(a1 text, a2 character varying, a3 timestamp with time zone)
+        returns text as """ + body + """ language sql volatile;
+    """
+    parsed = parser.CreateFunctionParser(stmt).parse()
+    eq_(parsed["returns"], "text")
+    eq_(parsed["body"], body)
+    eq_(len(parsed["arguments"]), 3)
+    eq_(parsed["arguments"][1]["type"], "character varying")
+    eq_(parsed["arguments"][2]["type"], "timestamp with time zone")
