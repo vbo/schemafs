@@ -5,8 +5,8 @@ class CreateFunctionParser(BaseParser):
 
     MODES = ("IN", "OUT", "INOUT", "VARIADIC")
 
-    def __init__(self, stmt):
-        super(CreateFunctionParser, self).__init__(stmt)
+    def __init__(self, stmt, start=0):
+        super(CreateFunctionParser, self).__init__(stmt, start)
         self.parsed = {
             "name": None,
             "arguments": [],
