@@ -59,7 +59,7 @@ class BaseParser(object):
         is_quoted = self.stmt[self.pos] == '"'
         if is_quoted:
             after_quote = self.stmt.find('"', self.pos + 1) + 1
-            result = self.stmt[self.pos:after_quote]
+            result = self.stmt[self.pos + 1:after_quote - 1]
             self.pos = after_quote
             return result
         end = self.pos
@@ -123,7 +123,7 @@ class BaseParser(object):
         if is_dollar:
             start = self.pos
             self.pos += 1
-            tag = self.stmt[self.pos:self.stmt.find("$")]
+            tag = self.stmt[self.pos:self.stmt.find("$", self.pos)]
             self.pos += len(tag)
             self.expect("$")
             end_quote = "$" + tag + "$"
@@ -156,5 +156,6 @@ class BaseParser(object):
             return end
         if word in '(,[]':
             return end
+        return -1
 
 

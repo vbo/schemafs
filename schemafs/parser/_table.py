@@ -10,13 +10,15 @@ class CreateTableParser(BaseParser):
     COLUMN_DEF_DEFAULT_RE = re.compile(r'^(.+)\s+DEFAULT\s+(.+)$', re.IGNORECASE)
 
     def init(self):
+        self.start = self.pos
         self.parsed = {
             "name": None,
             "constrains": {},
             "columns": [],
             "with": None,
             "tablespace": None,
-            "inherits": []
+            "inherits": [],
+            "definition": None
         }
 
     def parse(self):
@@ -36,7 +38,7 @@ class CreateTableParser(BaseParser):
                 break
             else:
                 self.expect(",")
-        while not self.expect_optional(";"):
+        while self.pos != self.len and self.stmt[self.pos] != ";":
             if self.expect_optional("INHERITS"):
                 self.parse_inherits()
             elif self.expect_optional("WITHOUT"):
@@ -54,6 +56,7 @@ class CreateTableParser(BaseParser):
                 self.parsed["tablespace"] = self.get_string()
             else:
                 raise ParseError("Unsupported command")
+        self.parsed["definition"] = self.stmt[self.start:self.pos + 1]
         return self.parsed
 
     def parse_constrain(self):

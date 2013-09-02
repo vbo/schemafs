@@ -5,15 +5,15 @@ from .. import schema
 def test_diff_empty():
     diff = schema.diff({
         "functions": {
-            "test_func": """
+            "test_func": {"definition": """
                 aaa
-            """.strip()
+            """.strip()}
         }
     }, {
         "functions": {
-            "test_func": """
+            "test_func": {"definition": """
                 aaa
-            """.strip()
+            """.strip()}
         }
     })
     ok_(schema.diff_empty(diff))
@@ -22,15 +22,15 @@ def test_diff_empty():
 def test_diff_changed():
     diff = schema.diff({
         "functions": {
-            "test_func": """
+            "test_func": {"definition": """
                 aaa
-            """.strip()
+            """.strip()}
         }
     }, {
         "functions": {
-            "test_func": """
+            "test_func": {"definition": """
                 bbb
-            """.strip()
+            """.strip()}
         }
     })
     ok_(len(diff["functions"]["changed"]) == 1)
@@ -41,21 +41,21 @@ def test_diff_changed():
 def test_diff_added_untouched_removed():
     diff = schema.diff({
         "functions": {
-            "test_func_added": """
+            "test_func_added": {"definition": """
                 aaa
-            """.strip(),
-            "test_func": """
+            """.strip()},
+            "test_func": {"definition": """
                 aaa
-            """.strip()
+            """.strip()}
         }
     }, {
         "functions": {
-            "test_func": """
+            "test_func": {"definition": """
                 aaa
-            """.strip(),
-            "test_func_removed": """
+            """.strip()},
+            "test_func_removed": {"definition": """
                 bbb
-            """.strip()
+            """.strip()}
         }
     })["functions"]
     ok_("test_func_added" in diff["added"])

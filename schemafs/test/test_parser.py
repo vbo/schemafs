@@ -16,7 +16,7 @@ def test_create_table():
         ) TABLESPACE disk01;
     """
     parsed = parser.CreateTableParser(stmt).parse()
-    eq_(parsed["name"], 'abc_schema."abc"')
+    eq_(parsed["name"], 'abc_schema.abc')
     ok_("abc_bca_fkey" in parsed["constrains"])
     eq_(parsed["tablespace"], "disk01")
     eq_(len(parsed["columns"]), 3)
@@ -29,6 +29,7 @@ def test_create_table():
         actual = parsed["columns"][i]
         for key in col:
             eq_(col[key], actual[key])
+    eq_(parsed["definition"], stmt.rstrip())
 
 
 def test_create_function():

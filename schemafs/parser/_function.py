@@ -6,11 +6,14 @@ class CreateFunctionParser(BaseParser):
     MODES = ("IN", "OUT", "INOUT", "VARIADIC")
 
     def init(self):
+        self.start = self.pos
         self.parsed = {
             "name": None,
             "arguments": [],
             "returns": None,
-            "body": None
+            "body": None,
+            "attributes": "",
+            "definition": None
         }
 
     def parse(self):
@@ -30,17 +33,28 @@ class CreateFunctionParser(BaseParser):
             if self.expect_optional(")"):
                 break
             self.expect(",")
-        if self.expect_optional("RETURNS"):
-            start = self.pos
-            end = self.pos
-            while not self.expect_optional("AS"):
-                self.pos += 1
-                end += 1
-            if start == end:
-                raise ParseError("Empty RETURNS")
-            self.parsed["returns"] = self.stmt[start:end].strip()
+        self.expect("RETURNS")
+        # todo: it's really optional where there are some OUT/INOUT params
+        start = self.pos
+        end = self.pos
+        while not self.expect_optional("AS"):
+            self.pos += 1
+            end += 1
+        if start == end:
+            raise ParseError("Empty RETURNS")
+        self.parsed["returns"] = self.stmt[start:end].strip()
         # todo: parse attributes
         self.parsed["body"] = self.get_string()
+        # todo: parse attributes carefully
+        end = self.pos
+        while True:
+            if end == self.len or self.stmt[end] == ';':
+                break
+            end += 1
+        self.parsed["attributes"] = self.stmt[self.pos:end]
+        self.pos = end
+        self.parsed["definition"] = self.stmt[self.start:self.pos + 1]
+        assert self.pos == self.len or self.stmt[self.pos] == ";"
         return self.parsed
 
     def parse_argument(self):

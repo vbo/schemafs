@@ -1,6 +1,8 @@
 from subprocess import Popen, PIPE, STDOUT
 import re
 
+from . import parser
+
 
 def create_template():
     return {
@@ -47,67 +49,35 @@ def _diff_dict(left, right):
     return {
         "added": left_keyset - common_keyset,
         "removed": right_keyset - common_keyset,
-        "changed": set(filter(lambda x: left[x] != right[x], common_keyset))
+        "changed": set(filter(lambda x: left[x]["definition"] != right[x]["definition"], common_keyset))
     }
 
 
 def parse_dump(dump):
+    if not isinstance(dump, str):
+        dump = dump.read()
     struct = create_template()
-    if isinstance(dump, str):
-        dump = iter(dump.splitlines(True))
-    while True:
-        try:
-            line = dump.next()
-            if line.startswith('CREATE TABLE'):
-                matches = re.search(r'table\s+"?(\w+)"?', line, re.IGNORECASE)
-                if not matches:
-                    raise SyntaxError("Create table statement must contain table name")
-                table = matches.group(1).lower()
-                lines = []
-                while True:
-                    lines.append(line)
-                    # todo: parse definition body (columns etc)
-                    if line.rstrip().endswith(';'):
-                        # todo: what about EOF?
-                        struct["tables"][table] = "".join(lines)
-                        break
-                    line = dump.next()
-            elif line.startswith('CREATE FUNCTION'):
-                matches = re.search(r'function\s+"?([\w]+)"?\s*\(', line, re.IGNORECASE)
-                if not matches:
-                    raise SyntaxError("Create function statement must contain function name and args")
-                function = matches.group(1).lower()
-                lines = []
-                while True:
-                    lines.append(line)
-                    # todo: parse argument types
-                    in_body = re.search(r'as\s+(\$[^$]*\$|\')', line, re.IGNORECASE)
-                    if in_body:
-                        delimiter = in_body.group(1)
-                        delimiter_start = in_body.end(1)
-                        while True:
-                            out_body = False
-                            if delimiter.startswith('$'):
-                                out_body = line.find(delimiter, delimiter_start) != -1
-                            elif delimiter == "'":
-                                out_body_matches = re.findall(r"('+)[^']", line[delimiter_start + 1:])
-                                if out_body_matches:
-                                    for quotes in out_body_matches:
-                                        out_body = len(quotes) % 2 > 0
-                                else:
-                                    out_body = False
-                            else:
-                                raise SyntaxError("Unknown function body delimiter: '%s'" % delimiter)
-                            if not out_body:
-                                line = dump.next()
-                                lines.append(line)
-                                delimiter_start = 0
-                                continue
-                            break
-                    if re.search(';\s*$', line):
-                        struct["functions"][function] = "".join(lines)
-                        break
-                    line = dump.next()
-        except StopIteration:
-            break
+    position = 0
+    length = len(dump)
+    while position < length:
+        end = dump.find("\n", position)
+        if end == -1:
+            end = length
+        line = dump[position:end].strip()
+        if not line:
+            pass
+        elif re.match(r"^CREATE\s+TABLE", line, re.IGNORECASE):
+            p = parser.CreateTableParser(dump, position, length)
+            parsed = p.parse()
+            struct["tables"][parsed["name"]] = parsed
+            end = p.pos
+        elif re.match(r"^CREATE\s+(OR\s+REPLACE\s+)?FUNCTION", line, re.IGNORECASE):
+            p = parser.CreateFunctionParser(dump, position, length)
+            parsed = p.parse()
+            struct["functions"][parsed["name"]] = parsed
+            end = p.pos
+        else:
+            #print line
+            pass
+        position = end + 1
     return struct

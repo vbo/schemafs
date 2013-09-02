@@ -6,9 +6,9 @@ def from_struct(root, struct):
     for t in struct.keys():
         directory = os.path.join(root, t)
         os.mkdir(directory)
-        for name, definition in struct[t].items():
+        for name, item in struct[t].items():
             with open(os.path.join(directory, '%s.sql' % name), 'w') as fl:
-                fl.write(definition)
+                fl.write(item["definition"])
 
 
 def to_struct(root, struct):
@@ -18,5 +18,5 @@ def to_struct(root, struct):
             continue
         for g in iglob(os.path.join(directory, "*.sql")):
             name = os.path.splitext(os.path.basename(g))[0]
-            struct[t][name] = open(g).read()
+            struct[t][name] = {"definition": open(g).read()}
     return struct
