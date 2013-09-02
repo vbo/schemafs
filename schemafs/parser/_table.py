@@ -9,8 +9,7 @@ class CreateTableParser(BaseParser):
     COLUMN_DEF_NULL_RE = re.compile(r'^(.+)\s+NULL$', re.IGNORECASE)
     COLUMN_DEF_DEFAULT_RE = re.compile(r'^(.+)\s+DEFAULT\s+(.+)$', re.IGNORECASE)
 
-    def __init__(self, stmt, start=0):
-        super(CreateTableParser, self).__init__(stmt, start)
+    def init(self):
         self.parsed = {
             "name": None,
             "constrains": {},

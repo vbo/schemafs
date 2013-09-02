@@ -7,11 +7,17 @@ class ParseError(Exception):
 
 class BaseParser(object):
 
-    def __init__(self, stmt, start=0):
+    def __init__(self, stmt, start=0, length=None):
         self.stmt = stmt
         self.pos = start
-        self.len = len(self.stmt)
+        if length is None:
+            length = len(self.stmt)
+        self.len = length
+        self.init()
         self.skip_whitespace()
+
+    def init(self):
+        pass
 
     def skip_whitespace(self):
         i = self.pos
