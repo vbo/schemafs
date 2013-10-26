@@ -31,6 +31,7 @@ test_table = {"test_table": {
     }
 }
 
+
 def test_table_renamed_sql():
     test_table2 = deepcopy(test_table)
     test_table2["test_table"]["name"] = "test_table2"
@@ -57,8 +58,4 @@ def test_table_changed_all():
                             email character varying NOT NULL,
                         );""".strip(),
     diff = differ.diff({"tables": test_table }, {"tables": test_table2 })
-    ok_(len(diff["tables"]["changed"]) == 1)
     ok_(diff["tables"]["changed"][0]["sql"] == "ALTER TABLE test_table RENAME TO test_table111111111111111;")
-    ok_(not diff["tables"]["added"])
-    ok_(not diff["tables"]["removed"])
-
