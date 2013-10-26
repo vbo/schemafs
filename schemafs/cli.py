@@ -135,8 +135,8 @@ def changes_view(changes, current, past):
             print change_letters[change], name
             if change == "changed":
                 diff = difflib.unified_diff(
-                    a=past[name].splitlines(True),
-                    b=current[name].splitlines(True),
+                    a=past[name]['definition'].splitlines(True),
+                    b=current[name]['definition'].splitlines(True),
                     fromfile="old",
                     tofile="new",
                 )
