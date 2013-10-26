@@ -16,7 +16,7 @@ def dump(server, user, db, args=None):
         args = []
     # todo: error handling
     if server != "localhost":
-        cmd = 'ssh %s "pg_dump -s -U postgres %s | bzip2" | bunzip2' % (user + "@" + server, db)
+        cmd = 'ssh %s "pg_dump -s -U postgres %s -h localhost | bzip2" | bunzip2' % (user + "@" + server, db)
     else:
         cmd = " ".join(
             ['pg_dump', '-s'] + args +

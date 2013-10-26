@@ -39,3 +39,7 @@ nosetests.xml
 /.idea
 *.iml
 .test-sandbox
+
+# sfs
+./sql
+./.schemafs
