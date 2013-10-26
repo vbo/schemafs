@@ -1,10 +1,10 @@
 from nose.tools import ok_, eq_
-from .. import schema
+from .. import parser
 
 
 def _test_func(name, definition):
     # todo: test_func* tests must go to test_parser (and some - must be deleted)
-    struct = schema.parse_dump(definition)
+    struct = parser.parse_dump(definition)
     ok_(name in struct["functions"], "%s parsed as function" % name)
     eq_(definition, struct["functions"][name]["definition"])
 
@@ -55,7 +55,7 @@ def test_func_parser_string_quoted():
 
 def test_booktown():
     d1 = open('fixture/parser/booktown.sql', 'r')
-    struct = schema.parse_dump(d1)
+    struct = parser.parse_dump(d1)
     ok_(len(struct["tables"]), "some tables parsed")
     ok_("publishers" in struct["tables"], "publishers table parsed")
     ok_(len(struct["functions"]), "some functions parsed")

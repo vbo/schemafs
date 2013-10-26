@@ -6,6 +6,9 @@ import difflib
 
 from . import schema
 from . import fs
+from . import differ
+from . import parser
+from . import connection
 
 
 _pj = os.path.join
@@ -66,13 +69,13 @@ class Ctrl(object):
     def refresh(self, force=False):
         if not force:
             diff, cur, past = self.diff()
-            if not all(schema.diff_empty(x) for x in diff.values()):
+            if not all(differ.diff_empty(x) for x in diff.values()):
                 raise RefreshError("Can't refresh tree with changes. Commit your changes or add --force to override")
         for db_name in self.config["databases"]:
-            dumped = schema.dump(self.config["server"], self.config["user"], db_name).read()
+            dumped = connection.dump(self.config["server"], self.config["user"], db_name).read()
             with open(_pj(DIR_DUMPS_WORKING, '%s.sql' % db_name), 'w') as working:
                 working.write(dumped)
-            struct = schema.parse_dump(dumped)
+            struct = parser.parse_dump(dumped)
             with open(_pj(DIR_CACHE_WORKING_SCHEMA, "%s.json" % db_name), 'w') as cache:
                 cache.write(json.dumps(struct))
             shutil.rmtree(_pj(self.root, self.config["directory"], db_name), ignore_errors=True)
@@ -86,7 +89,7 @@ class Ctrl(object):
         for db in dbs:
             past[db] = json.load(open(_pj(self.root, DIR_CACHE_WORKING_SCHEMA, '%s.json' % db)))
             current[db] = self.fs_to_struct(db)
-            result[db] = schema.diff(current[db], past[db])
+            result[db] = differ.diff(current[db], past[db])
         if hasattr(view, '__call__'):
             view(result, current, past)
         else:
@@ -151,8 +154,8 @@ def diff_view(diffs, current, past):
 
 
 # todo: declarative argparse
-parser = argparse.ArgumentParser(prog='sfs')
-subparsers = parser.add_subparsers()
+argparser = argparse.ArgumentParser(prog='sfs')
+subparsers = argparser.add_subparsers()
 init_parser = subparsers.add_parser('init')
 init_arg = init_parser.add_argument
 init_arg('--dir', dest='directory', nargs='?')
@@ -169,7 +172,7 @@ diff_parser.set_defaults(cmd='diff', view=diff_view)
 
 
 if __name__ == '__main__':
-    args = parser.parse_args()
+    args = argparser.parse_args()
     cli = Ctrl()
     kwargs = vars(args)
     cmd = kwargs['cmd']

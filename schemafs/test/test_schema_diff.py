@@ -1,9 +1,9 @@
 from nose.tools import ok_, eq_
-from .. import schema
+from .. import differ
 
 
 def test_diff_empty():
-    diff = schema.diff({
+    diff = differ.diff({
         "functions": {
             "test_func": {"definition": """
                 aaa
@@ -16,11 +16,11 @@ def test_diff_empty():
             """.strip()}
         }
     })
-    ok_(schema.diff_empty(diff))
+    ok_(differ.diff_empty(diff))
 
 
 def test_diff_changed():
-    diff = schema.diff({
+    diff = differ.diff({
         "functions": {
             "test_func": {"definition": """
                 aaa
@@ -39,7 +39,7 @@ def test_diff_changed():
 
 
 def test_diff_added_untouched_removed():
-    diff = schema.diff({
+    diff = differ.diff({
         "functions": {
             "test_func_added": {"definition": """
                 aaa

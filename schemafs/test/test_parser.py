@@ -1,4 +1,4 @@
-from nose.tools import ok_, eq_, raises, with_setup
+from nose.tools import ok_, eq_
 
 from .. import parser
 

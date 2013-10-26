@@ -6,6 +6,7 @@ import re
 
 from .. import cli
 from .. import schema
+from .. import differ
 
 
 # todo: test cli view separately (pretty diff, output messages etc)
@@ -74,7 +75,7 @@ class TestCli:
         ctrl = cli.Ctrl()
         ctrl.init('sql', 'localhost', 'vbo', [_db_e], True)
         diff = cli.Ctrl().diff()
-        ok_(schema.diff_empty(diff[0][_db_e]))
+        ok_(differ.diff_empty(diff[0][_db_e]))
         func = open('sql/%s/functions/test_func.sql' % _db_e).read()
         func = re.sub(r'(return\s+)(\d+);', r'\1\2\2;', func, flags=re.IGNORECASE)
         open('sql/%s/functions/test_func.sql' % _db_e, 'w').write(func)
@@ -92,4 +93,4 @@ class TestCli:
         self.test_cli_diff()
         cli.Ctrl().refresh(force=True)
         diff = cli.Ctrl().diff()
-        ok_(schema.diff_empty(diff[0][_db_e]))
+        ok_(differ.diff_empty(diff[0][_db_e]))
