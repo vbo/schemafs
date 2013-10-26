@@ -5,13 +5,17 @@ from .. import differ
 def test_diff_empty():
     diff = differ.diff({
         "functions": {
-            "test_func": {"definition": """
+            "test_func": {
+                "name": "test_func",
+                "definition": """
                 aaa
             """.strip()}
         }
     }, {
         "functions": {
-            "test_func": {"definition": """
+            "test_func": {
+                "name": "test_func",
+                "definition": """
                 aaa
             """.strip()}
         }
@@ -22,13 +26,17 @@ def test_diff_empty():
 def test_diff_changed():
     diff = differ.diff({
         "functions": {
-            "test_func": {"definition": """
+            "test_func": {
+                "name": "test_func",
+                "definition": """
                 aaa
             """.strip()}
         }
     }, {
         "functions": {
-            "test_func": {"definition": """
+            "test_func": {
+                "name": "test_func",
+                "definition": """
                 bbb
             """.strip()}
         }

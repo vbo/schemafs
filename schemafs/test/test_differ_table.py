@@ -31,6 +31,48 @@ test_table = {"test_table": {
     }
 }
 
+def test_table_column_added_sql():
+    test_table2 = deepcopy(test_table)
+    test_table2["test_table"]["columns"].append({
+        "default":"",
+        "type":"character varying",
+        "name":"nickname",
+        "nullable":False
+    })
+    sql = _table.change_sql(test_table["test_table"], test_table2["test_table"])
+    ok_(sql == "ALTER TABLE test_table ADD COLUMN nickname character varying NOT NULL DEFAULT '';")
+
+    test_table2 = deepcopy(test_table)
+    test_table2["test_table"]["columns"].append({
+        "default":None,
+        "type":"character varying",
+        "name":"nickname",
+        "nullable":False
+    })
+    sql = _table.change_sql(test_table["test_table"], test_table2["test_table"])
+    ok_(sql == "ALTER TABLE test_table ADD COLUMN nickname character varying NOT NULL;")
+
+    test_table2 = deepcopy(test_table)
+    test_table2["test_table"]["columns"].append({
+        "default":None,
+        "type":"character varying",
+        "name":"nickname",
+        "nullable":True
+    })
+    sql = _table.change_sql(test_table["test_table"], test_table2["test_table"])
+    ok_(sql == "ALTER TABLE test_table ADD COLUMN nickname character varying;")
+
+    test_table2 = deepcopy(test_table)
+    test_table2["test_table"]["columns"].append({
+        "default":'123123',
+        "type":"character varying",
+        "name":"nickname",
+        "nullable":True
+    })
+    sql = _table.change_sql(test_table["test_table"], test_table2["test_table"])
+    ok_(sql == "ALTER TABLE test_table ADD COLUMN nickname character varying DEFAULT '123123';")
+
+
 
 def test_table_renamed_sql():
     test_table2 = deepcopy(test_table)
@@ -38,9 +80,11 @@ def test_table_renamed_sql():
     sql = _table.change_sql(test_table["test_table"], test_table2["test_table"])
     ok_(sql == "ALTER TABLE test_table RENAME TO test_table2;")
 
+
 def test_table_drop_sql():
     sql = _table.drop_sql(test_table["test_table"])
     ok_(sql == "DROP TABLE test_table;")
+
 
 def test_table_create_sql():
     sql = _table.create_sql(test_table["test_table"])
@@ -49,6 +93,7 @@ def test_table_create_sql():
                             id bigint NOT NULL,
                             email character varying NOT NULL,
                         );""".strip())
+
 
 def test_table_changed_all():
     test_table2 = deepcopy(test_table)
