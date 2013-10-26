@@ -133,8 +133,9 @@ change_letters = {
 
 
 def changes_view(changes, current, past):
-    for change, names in changes.items():
-        for name in names:
+    for change, details in changes.items():
+        for detail in details:
+            name = detail["key"]
             print change_letters[change], name
             if change == "changed":
                 diff = difflib.unified_diff(
